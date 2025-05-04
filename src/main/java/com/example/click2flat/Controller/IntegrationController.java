@@ -5,6 +5,8 @@ import com.example.click2flat.Dao.ColumnMetaData;
 import com.example.click2flat.Dao.FlatFileConfig;
 import com.example.click2flat.Dao.IngestionRequest;
 import com.example.click2flat.Service.ClickHouseService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.example.click2flat.Dao.ClickHouseConfig;
@@ -146,18 +148,30 @@ public class IntegrationController {
     }
 
         @PostMapping("/flatfile/preview")
-        public ResponseEntity<Map<String,Object>> previewFlatFileData(@RequestBody IngestionRequest request){
-            Map<String,Object> response = new HashMap<>();
+        public ResponseEntity<Map<String,Object>> previewFlatFileData(@RequestParam("file") MultipartFile file, // Accept uploaded CSV file
+                                                                      @RequestParam("delimiter") String delimiter, // Accept delimiter (comma, semicolon, etc.)
+                                                                      @RequestParam("hasHeader") boolean hasHeader, // Accept if the CSV has headers
+                                                                      @RequestParam("selectedColumns") String selectedColumnsJson // Accept selected columns JSON as string
+        ) {
+            Map<String, Object> response = new HashMap<>();
 
             try {
-                log.info("Received preview request for flat file : {}",request.getFlatFileConfig());
-                log.info("Selected columns : {}",request.getSelectedColumns());
-
-                List<Map<String, Object>> data = integrationService.previewFlatFileData(
-                        request.getFlatFileConfig(),
-                        request.getSelectedColumns(),
-                        100
+                // Parse the selected columns from the JSON string to List<ColumnMetaData>
+                ObjectMapper objectMapper = new ObjectMapper();
+                List<ColumnMetaData> selectedColumns = objectMapper.readValue(
+                        selectedColumnsJson,
+                        new TypeReference<List<ColumnMetaData>>() {}
                 );
+
+                // Create FlatFileConfig from the incoming request data
+                FlatFileConfig config = new FlatFileConfig();
+                config.setFileName(file); // Set the uploaded file
+                config.setDelimiter(delimiter); // Set the delimiter
+                config.setHasHeader(hasHeader); // Set header presence
+                config.setEncoding("UTF-8"); // Default encoding
+
+                // Call your service method to preview the flat file data
+                List<Map<String, Object>> data = integrationService.previewFlatFileData(config, selectedColumns, 100);
 
                 response.put("success", true);
                 response.put("data", data);
@@ -171,10 +185,21 @@ public class IntegrationController {
             }
         }
     @PostMapping("/execute")
-    public ResponseEntity<Map<String, Object>> executeIngestion(@RequestBody IngestionRequest request) {
+    public ResponseEntity<Map<String, Object>> executeIngestion(@RequestParam("file") MultipartFile file,
+                                                                @RequestParam("request") String requestJson
+    ) {
         Map<String, Object> response = new HashMap<>();
         try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            IngestionRequest request = objectMapper.readValue(requestJson, IngestionRequest.class);
+
+            // Inject the file into FlatFileConfig
+            FlatFileConfig config = request.getFlatFileConfig();
+            config.setFileName(file);  // assumes FlatFileConfig has MultipartFile file field
+
+            // Now call the service
             int recordCount = integrationService.executeIngestion(request);
+
             response.put("success", true);
             response.put("recordCount", recordCount);
             response.put("message", "Ingestion completed successfully");
@@ -184,6 +209,7 @@ public class IntegrationController {
             response.put("success", false);
             response.put("message", "Ingestion failed: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
+
         }
     }
 

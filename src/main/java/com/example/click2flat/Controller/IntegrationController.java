@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -87,10 +88,14 @@ public class IntegrationController {
 
 
     @PostMapping("/flatfile/schema")
-    public ResponseEntity<Map<String,Object>> getFlatfileSchema(@RequestBody FlatFileConfig config) {
+    public ResponseEntity<Map<String,Object>> getFlatfileSchema(@RequestParam("file")MultipartFile file, @RequestParam(value = "delimiter",defaultValue = ",") String delimiter,@RequestParam(value = "hasHeader",defaultValue = "true") boolean hasHeader) {
         Map<String,Object> response = new HashMap<>();
 
         try {
+            FlatFileConfig config = new FlatFileConfig();
+            config.setFileName(file);
+            config.setDelimiter(delimiter);
+            config.setHasHeader(hasHeader);
             List<ColumnMetaData>columns = integrationService.getFlatFileSchema(config);
             response.put("Success",true);
             response.put("columns",columns);

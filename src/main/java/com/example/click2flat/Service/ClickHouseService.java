@@ -78,7 +78,7 @@ public class ClickHouseService {
 
      public void createTable(Connection connection, String tableName, List<ColumnMetaData> columns) throws SQLException {
         StringBuilder createTableQuery = new StringBuilder();
-        createTableQuery.append("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (");
+        createTableQuery.append("CREATE TABLE IF NOT EXISTS ").append("Db.").append(tableName).append(" (");
 
         boolean first = true;
         for (ColumnMetaData column : columns) {
@@ -86,7 +86,7 @@ public class ClickHouseService {
                 if (!first) {
                     createTableQuery.append(", ");
                 }
-                createTableQuery.append("`").append(column.getName()).append("` ");
+                createTableQuery.append(" ").append(column.getName()).append(" ");
 
                 // Map CSV types to ClickHouse types
                 String clickHouseType = mapToClickHouseType(column.getType());
@@ -96,7 +96,8 @@ public class ClickHouseService {
             }
         }
 
-        createTableQuery.append(") ENGINE = MergeTree() ORDER BY tuple()");
+        createTableQuery.append(") ENGINE = MergeTree() ORDER BY ");
+        createTableQuery.append(" ").append(columns.get(0).getName()).append(" "); // or another column
 
         String query = createTableQuery.toString();
         log.info("Creating table with query: {}", query);

@@ -8,16 +8,14 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -28,130 +26,130 @@ public class FlatFileService {
     public int transferDataFromFlatFile(FlatFileConfig config, List<ColumnMetaData> columns,
                                         ClickHouseService.DataHandler handler) throws IOException, SQLException {
         int recordCount = 0;
-//
-//        // Check if config is null
-//        if (config == null) {
-//            log.error("FlatFileConfig is null");
-//            throw new IOException("FlatFileConfig cannot be null");
-//        }
-//
-//        // Check if fileName is null
-//        if (config.getFileName() == null) {
-//            log.error("File name is null in FlatFileConfig");
-//            throw new IOException("File name cannot be null");
-//        }
-//
-//        log.info("Attempting to resolve file path: {}", config.getFileName());
-//
-//        // Resolve file path or URL
-////        String resolvedFilePath = resolveFilePathOrUrl(config.getFileName());
-//
-//        // Get selected column names
-//        List<String> selectedColumnNames = new ArrayList<>();
-//        if (columns != null) {
-//            for (ColumnMetaData column : columns) {
-//                if (column != null && column.isSelected()) {
-//                    if (column.getName() != null) {
-//                        selectedColumnNames.add(column.getName());
-//                    } else {
-//                        log.warn("Found selected column with null name, skipping");
-//                    }
-//                }
-//            }
-//        } else {
-//            log.warn("Columns list is null");
-//        }
-//
-//        // If no columns selected, return 0
-//        if (selectedColumnNames.isEmpty()) {
-//            log.warn("No columns selected for transfer");
-//            return 0;
-//        }
-//
-////        log.info("Transferring data from file: {}", resolvedFilePath);
-//        log.info("Selected columns for transfer: {}", selectedColumnNames);
-//
-////        try (Reader reader = new BufferedReader(new InputStreamReader(new FileInputStream(resolvedFilePath), Charset.forName(config.getEncoding() != null ? config.getEncoding() : "UTF-8")))) {
-//            // Configure CSV parser based on the delimiter
-//            CSVFormat csvFormat = CSVFormat.DEFAULT;
-//
-//            // Add delimiter if provided, otherwise use default comma
-//            if (config.getDelimiter() != null && !config.getDelimiter().isEmpty()) {
-//                csvFormat = csvFormat.withDelimiter(config.getDelimiter().charAt(0));
-//            } else {
-//                log.warn("No delimiter specified, using default comma");
-//                csvFormat = csvFormat.withDelimiter(',');
-//            }
-//
-//            // Configure other CSV format options
-//            csvFormat = csvFormat.withHeader()
-//                    .withSkipHeaderRecord(config.isHasHeader())
-//                    .withAllowMissingColumnNames(true)
-//                    .withIgnoreHeaderCase(true);
-//
-//            try (CSVParser csvParser = new CSVParser(reader, csvFormat)) {
-//                Map<String, Integer> headerMap = csvParser.getHeaderMap();
-//                log.info("CSV header map: {}", headerMap);
-//
-//                for (CSVRecord record : csvParser) {
-//                    Map<String, Object> row = new HashMap<>();
-//
-//                    // Handle the case where we're using column positions instead of names
-//                    if (!config.isHasHeader()) {
-//                        int i = 0;
-//                        for (String columnName : selectedColumnNames) {
-//                            if (i < record.size()) {
-//                                String value = record.get(i);
-//                                row.put(columnName, value);
-//                            } else {
-//                                row.put(columnName, ""); // Empty value for missing columns
-//                            }
-//                            i++;
-//                        }
-//                    } else {
-//                        // Using header names
-//                        for (String columnName : selectedColumnNames) {
-//                            try {
-//                                String value = record.get(columnName);
-//                                row.put(columnName, value);
-//                            } catch (IllegalArgumentException e) {
-//                                // Column name not found in header, try case-insensitive match
-//                                boolean found = false;
-//                                for (String header : headerMap.keySet()) {
-//                                    if (header.equalsIgnoreCase(columnName)) {
-//                                        String value = record.get(header);
-//                                        row.put(columnName, value);
-//                                        found = true;
-//                                        break;
-//                                    }
-//                                }
-//
-//                                if (!found) {
-//                                    // Still not found, add empty value
-//                                    row.put(columnName, "");
-//                                    log.warn("Column '{}' not found in CSV header", columnName);
-//                                }
-//                            }
-//                        }
-//                    }
-//
-//                    handler.processRow(row);
-//                    recordCount++;
-//
-//                    // Log progress every 1000 records
-//                    if (recordCount % 1000 == 0) {
-//                        log.info("Processed {} records", recordCount);
-//                    }
-//                }
-//
-//                log.info("Transferred {} records from file", recordCount);
-//            }
-//        } catch (Exception e) {
-//            log.error("Error transferring data from file: {}", e.getMessage(), e);
-//            throw new IOException("Error transferring data from file: " + e.getMessage(), e);
-//        }
-//
-//        handler.complete();
+
+        // Check if config is null
+        if (config == null) {
+            log.error("FlatFileConfig is null");
+            throw new IOException("FlatFileConfig cannot be null");
+        }
+
+        // Check if fileName is null
+        if (config.getFileName() == null) {
+            log.error("File name is null in FlatFileConfig");
+            throw new IOException("File name cannot be null");
+        }
+
+        log.info("Attempting to resolve file path: {}", config.getFileName());
+
+        // Resolve file path or URL
+//        String resolvedFilePath = resolveFilePathOrUrl(config.getFileName());
+
+        // Get selected column names
+        List<String> selectedColumnNames = new ArrayList<>();
+        if (columns != null) {
+            for (ColumnMetaData column : columns) {
+                if (column != null && column.isSelected()) {
+                    if (column.getName() != null) {
+                        selectedColumnNames.add(column.getName());
+                    } else {
+                        log.warn("Found selected column with null name, skipping");
+                    }
+                }
+            }
+        } else {
+            log.warn("Columns list is null");
+        }
+
+        // If no columns selected, return 0
+        if (selectedColumnNames.isEmpty()) {
+            log.warn("No columns selected for transfer");
+            return 0;
+        }
+
+//        log.info("Transferring data from file: {}", resolvedFilePath);
+        log.info("Selected columns for transfer: {}", selectedColumnNames);
+
+        try (Reader reader = new BufferedReader(new InputStreamReader(config.getFileName().getInputStream(), Charset.forName(config.getEncoding() != null ? config.getEncoding() : "UTF-8")))) {
+        // Configure CSV parser based on the delimiter
+        CSVFormat csvFormat = CSVFormat.DEFAULT;
+
+            // Add delimiter if provided, otherwise use default comma
+            if (config.getDelimiter() != null && !config.getDelimiter().isEmpty()) {
+                csvFormat = csvFormat.withDelimiter(config.getDelimiter().charAt(0));
+            } else {
+                log.warn("No delimiter specified, using default comma");
+                csvFormat = csvFormat.withDelimiter(',');
+            }
+
+            // Configure other CSV format options
+            csvFormat = csvFormat.withHeader()
+                    .withSkipHeaderRecord(config.isHasHeader())
+                    .withAllowMissingColumnNames(true)
+                    .withIgnoreHeaderCase(true);
+
+            try (CSVParser csvParser = new CSVParser(reader, csvFormat)) {
+                Map<String, Integer> headerMap = csvParser.getHeaderMap();
+                log.info("CSV header map: {}", headerMap);
+
+                for (CSVRecord record : csvParser) {
+                    Map<String, Object> row = new HashMap<>();
+
+                    // Handle the case where we're using column positions instead of names
+                    if (!config.isHasHeader()) {
+                        int i = 0;
+                        for (String columnName : selectedColumnNames) {
+                            if (i < record.size()) {
+                                String value = record.get(i);
+                                row.put(columnName, value);
+                            } else {
+                                row.put(columnName, ""); // Empty value for missing columns
+                            }
+                            i++;
+                        }
+                    } else {
+                        // Using header names
+                        for (String columnName : selectedColumnNames) {
+                            try {
+                                String value = record.get(columnName);
+                                row.put(columnName, value);
+                            } catch (IllegalArgumentException e) {
+                                // Column name not found in header, try case-insensitive match
+                                boolean found = false;
+                                for (String header : headerMap.keySet()) {
+                                    if (header.equalsIgnoreCase(columnName)) {
+                                        String value = record.get(header);
+                                        row.put(columnName, value);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!found) {
+                                    // Still not found, add empty value
+                                    row.put(columnName, "");
+                                    log.warn("Column '{}' not found in CSV header", columnName);
+                                }
+                            }
+                        }
+                    }
+
+                    handler.processRow(row);
+                    recordCount++;
+
+                    // Log progress every 1000 records
+                    if (recordCount % 1000 == 0) {
+                        log.info("Processed {} records", recordCount);
+                    }
+                }
+
+                log.info("Transferred {} records from file", recordCount);
+            }
+        } catch (Exception e) {
+            log.error("Error transferring data from file: {}", e.getMessage(), e);
+            throw new IOException("Error transferring data from file: " + e.getMessage(), e);
+        }
+
+        handler.complete();
         return recordCount;
     }
 
@@ -162,50 +160,72 @@ public class FlatFileService {
             return 0;
         }
 
-//        // Get selected column names
-//        List<String> selectedColumnNames = new ArrayList<>();
-//        if (columns != null) {
-//            for (ColumnMetaData column : columns) {
-//                if (column != null && column.isSelected()) {
-//                    if (column.getName() != null) {
-//                        selectedColumnNames.add(column.getName());
-//                    } else {
-//                        log.warn("Found selected column with null name, skipping");
-//                    }
-//                }
-//            }
-//        } else {
-//            log.warn("Columns list is null");
-//        }
-//
-//        // If no columns selected, return 0
-//        if (selectedColumnNames.isEmpty()) {
-//            return 0;
-//        }
-//
-//        // For target files, we always use the local file path directly
-////        Path filePath = Paths.get(config.getFileName());
-//
-//        try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(config.getFileName()), Charset.forName(config.getEncoding())))) {
-//            // Configure CSV printer based on the delimiter
-//            CSVFormat csvFormat = CSVFormat.DEFAULT
-//                    .withDelimiter(config.getDelimiter().charAt(0))
-//                    .withHeader(selectedColumnNames.toArray(new String[0]));
-//
-//            try (CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat)) {
-//                for (Map<String, Object> row : data) {
-//                    List<Object> recordValues = new ArrayList<>();
-//                    for (String columnName : selectedColumnNames) {
-//                        recordValues.add(row.get(columnName));
-//                    }
-//
-//                    csvPrinter.printRecord(recordValues);
-//                }
-//            }
-//        }
+        // Get selected column names
+        List<String> selectedColumnNames = new ArrayList<>();
+        if (columns != null) {
+            for (ColumnMetaData column : columns) {
+                if (column != null && column.isSelected()) {
+                    if (column.getName() != null) {
+                        selectedColumnNames.add(column.getName());
+                    } else {
+                        log.warn("Found selected column with null name, skipping");
+                    }
+                }
+            }
+        } else {
+            log.warn("Columns list is null");
+        }
 
+        // If no columns selected, return 0
+        if (selectedColumnNames.isEmpty()) {
+            return 0;
+        }
+
+        // Now handle the file uploaded by the user
+        MultipartFile file = config.getFileName();
+        if (file == null || file.isEmpty()) {
+            log.error("No file provided or file is empty");
+            return 0;
+        }
+
+        // Set the path for storing the uploaded file temporarily
+        Path tempFilePath = Paths.get("temp", file.getOriginalFilename());  // Modify as needed
+
+        // Ensure the directory exists
+        if (Files.notExists(tempFilePath.getParent())) {
+            Files.createDirectories(tempFilePath.getParent());
+        }
+
+        // Copy the file to the local directory
+        try (InputStream inputStream = file.getInputStream()) {
+            Files.copy(inputStream, tempFilePath, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        // Create a BufferedWriter for the output file
+        try (Writer writer = new BufferedWriter(
+                new OutputStreamWriter(Files.newOutputStream(tempFilePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING),
+                        Charset.forName(config.getEncoding() != null ? config.getEncoding() : "UTF-8")))) {
+
+            // Configure CSV printer based on the delimiter
+            CSVFormat csvFormat = CSVFormat.DEFAULT
+                    .withDelimiter(config.getDelimiter().charAt(0))
+                    .withHeader(selectedColumnNames.toArray(new String[0]));
+
+            try (CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat)) {
+                for (Map<String, Object> row : data) {
+                    List<Object> recordValues = new ArrayList<>();
+                    for (String columnName : selectedColumnNames) {
+                        recordValues.add(row.get(columnName));
+                    }
+                    csvPrinter.printRecord(recordValues);
+                }
+            }
+        }
+
+        // Return the number of rows written to the file
         return data.size();
     }
+
 
 
     public ClickHouseService.DataHandler createFlatFileDataHandler(FlatFileConfig config, List<ColumnMetaData> columns) {
@@ -232,32 +252,40 @@ public class FlatFileService {
 
             @Override
             public void processRow(Map<String, Object> row) throws SQLException {
-//                try {
-//                    if (csvPrinter == null) {
-//                        // Initialize CSV printer on first row
-//                        writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(config.getFileName()), Charset.forName(config.getEncoding())));
-//                        CSVFormat csvFormat = CSVFormat.DEFAULT
-//                                .withDelimiter(config.getDelimiter().charAt(0))
-//                                .withHeader(selectedColumnNames.toArray(new String[0]));
-//                        csvPrinter = new CSVPrinter(writer, csvFormat);
-//                    }
-//
-//                    List<Object> recordValues = new ArrayList<>();
-//                    for (String columnName : selectedColumnNames) {
-//                        recordValues.add(row.get(columnName));
-//                    }
-//
-//                    csvPrinter.printRecord(recordValues);
-//                    recordCount++;
-//
-//                    // Log progress every 1000 records
-//                    if (recordCount % 1000 == 0) {
-//                        log.info("Written {} records to flat file", recordCount);
-//                    }
-//                } catch (IOException e) {
-//                    throw new SQLException("Error writing to flat file: " + e.getMessage(), e);
-//                }
+                try {
+                    if (csvPrinter == null) {
+                        // Create output file (update this to your actual config output file)
+                        File outputFile = new File("output.csv");  // Replace with your dynamic path if needed
+
+                        writer = new BufferedWriter(new OutputStreamWriter(
+                                new FileOutputStream(outputFile),
+                                Charset.forName(config.getEncoding() != null ? config.getEncoding() : "UTF-8")
+                        ));
+
+                        CSVFormat csvFormat = CSVFormat.DEFAULT
+                                .withDelimiter(config.getDelimiter().charAt(0))
+                                .withHeader(selectedColumnNames.toArray(new String[0]));
+
+                        csvPrinter = new CSVPrinter(writer, csvFormat);
+                    }
+
+                    List<Object> recordValues = new ArrayList<>();
+                    for (String columnName : selectedColumnNames) {
+                        recordValues.add(row.get(columnName));
+                    }
+
+                    csvPrinter.printRecord(recordValues);
+                    recordCount++;
+
+                    if (recordCount % 1000 == 0) {
+                        log.info("Written {} records to flat file", recordCount);
+                    }
+
+                } catch (IOException e) {
+                    throw new SQLException("Error writing to flat file: " + e.getMessage(), e);
+                }
             }
+
 
             @Override
             public void complete() throws SQLException {
